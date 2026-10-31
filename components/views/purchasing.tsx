@@ -80,7 +80,7 @@ export function Purchasing({ d, open, notify }: ViewProps) {
             </div>
           );
         })}
-        {list.length === 0 && <Empty icon={tab === "To approve" ? "✅" : "📭"} title={tab === "To approve" ? "Nothing to approve" : `Nothing ${tab.toLowerCase()}`} text={tab === "To approve" ? "Draft from low stock or add your own." : "Orders will appear here as they move along."} />}
+        {list.length === 0 && <Empty icon={tab === "To approve" ? "done" : "empty"} title={tab === "To approve" ? "Nothing to approve" : `Nothing ${tab.toLowerCase()}`} text={tab === "To approve" ? "Draft from low stock or add your own." : "Orders will appear here as they move along."} />}
       </div>
     </Screen>
   );

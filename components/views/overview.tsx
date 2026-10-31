@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ArrowRight, Check, ChefHat, Leaf, ScanLine, Sparkles, Trash2 } from "lucide-react";
 import { isLow, isoDaysAgo, money, suggestQty, toKg, uid, weeklySpend, type InventoryItem, type Purchase } from "@/lib/data";
-import { CountUp, Ring, Section, emoji, haptic } from "../ui";
+import { CountUp, Section, emoji, haptic } from "../ui";
 import type { ViewProps } from "../types";
 
 export const wasteWindow = (d: ViewProps["d"]) => {
@@ -33,19 +33,20 @@ export function Overview({ d, go, open, notify }: ViewProps) {
 
   return (
     <div className="view">
-      <header className="screen-head"><div className="sh-text"><h1>{greet}, Olivia</h1><p>{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</p></div></header>
-
-      <section className="hero">
-        <div>
-          <h2>{low.length ? `${low.length} ${low.length === 1 ? "thing needs" : "things need"} restocking` : "Pantry looks great"}</h2>
-          <p>{pending ? `${pending} order${pending > 1 ? "s are" : " is"} waiting for your OK.` : "No orders waiting on you."}</p>
-        </div>
-        <Ring value={health} color={health < 0.6 ? "var(--mango)" : "var(--lime)"}><b><CountUp to={health * 100} format={(n) => `${Math.round(n)}%`} /></b><small>stocked</small></Ring>
+      <div className="band-home">
+        <div className="kick">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</div>
+        <h1>{greet}, Olivia.</h1>
+        <p className="lede">{low.length ? `${low.length} ${low.length === 1 ? "ingredient needs" : "ingredients need"} restocking` : "The pantry looks well stocked"}{pending ? `, and ${pending} order${pending > 1 ? "s are" : " is"} waiting for your OK.` : ". No orders are waiting on you."}</p>
         <div className="acts">
-          <button className="btn lime sm" onClick={() => go("Orders")}>Review orders</button>
-          <button className="btn sm" style={{ background: "#ffffff1f" }} onClick={() => go("Assistant")}><Sparkles /> Ask Kooper</button>
+          <button className="btn lime" onClick={() => go("Orders")}>Review orders</button>
+          <button className="btn glass" onClick={() => go("Assistant")}><Sparkles /> Ask Kooper</button>
         </div>
-      </section>
+        <div className="glass-stats">
+          <div><b className="num"><CountUp to={health * 100} format={(n) => `${Math.round(n)}%`} /></b><span>Stocked</span></div>
+          <div><b className="num">{low.length}</b><span>Running low</span></div>
+          <div><b className="num">{pending}</b><span>To approve</span></div>
+        </div>
+      </div>
 
       {low.length > 0 && <>
         <Section title="Running low" aside={<button className="link" onClick={() => go("Stock")}>See stock <ArrowRight /></button>} />

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { toKg } from "@/lib/data";
-import { CountUp, Empty, Screen, Section, SwipeRow, emoji, haptic, insertAt } from "../ui";
+import { CountUp, Empty, Ico, Screen, Section, SwipeRow, emoji, haptic, insertAt } from "../ui";
 import { wasteWindow } from "./overview";
 import type { ViewProps } from "../types";
 
@@ -20,9 +20,9 @@ export function Waste({ d, open, notify, go }: ViewProps) {
   const recent = Array.from(new Set([...d.waste.map((w) => w.item), ...d.inventory.map((x) => x.name)])).slice(0, 8);
 
   const notes = [
-    repeat && { i: "🔁", t: `${repeat[0]} keeps coming back`, s: `Logged ${repeat[1].n} times. Check shelf life and how much you buy at once.` },
-    byReason[0] && { i: "🧭", t: `Top reason: ${byReason[0][0].toLowerCase()}`, s: ["Spoiled", "Expired"].includes(byReason[0][0]) ? "Look at storage, rotation and order size." : "Use the same reasons each time so the real cause shows." },
-    { i: "♻️", t: "Use older stock first", s: "Work the oldest produce into today’s specials before buying more." },
+    repeat && { i: "repeat", t: `${repeat[0]} keeps coming back`, s: `Logged ${repeat[1].n} times. Check shelf life and how much you buy at once.` },
+    byReason[0] && { i: "compass", t: `Top reason: ${byReason[0][0].toLowerCase()}`, s: ["Spoiled", "Expired"].includes(byReason[0][0]) ? "Look at storage, rotation and order size." : "Use the same reasons each time so the real cause shows." },
+    { i: "recycle", t: "Use older stock first", s: "Work the oldest produce into today’s specials before buying more." },
   ].filter(Boolean) as { i: string; t: string; s: string }[];
 
   return (
@@ -54,11 +54,11 @@ export function Waste({ d, open, notify, go }: ViewProps) {
             </SwipeRow>
           </div>
         ))}
-        {log.length === 0 && <Empty icon="🌱" title="Nothing logged" text="Tap an ingredient above to start." />}
+        {log.length === 0 && <Empty icon="sprout" title="Nothing logged" text="Tap an ingredient above to start." />}
       </div>
 
       <Section title="What Kooper notices" />
-      <div className="card">{notes.map((n) => <div className="insight" key={n.t}><i>{n.i}</i><div><b>{n.t}</b><span>{n.s}</span></div></div>)}</div>
+      <div className="card">{notes.map((n) => <div className="insight" key={n.t}><i><Ico n={n.i} /></i><div><b>{n.t}</b><span>{n.s}</span></div></div>)}</div>
     </Screen>
   );
 }

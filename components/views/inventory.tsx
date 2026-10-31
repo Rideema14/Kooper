@@ -64,7 +64,7 @@ export function Inventory({ d, open, notify }: ViewProps) {
             </SwipeRow>
           </div>
         ))}
-        {rows.length === 0 && <Empty icon="🔍" title="Nothing matches" text="Try another search or filter." />}
+        {rows.length === 0 && <Empty icon="search" title="Nothing matches" text="Try another search or filter." />}
       </div>
     </Screen>
   );

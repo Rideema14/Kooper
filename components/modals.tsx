@@ -3,7 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Copy, MessageCircle, Share2, PackagePlus, Trash2, ScanLine, ShoppingBasket } from "lucide-react";
 import { isLow, isoDaysAgo, money, suggestQty, uid, type InventoryItem, type Purchase, type WasteEntry } from "@/lib/data";
 import type { KooperData } from "@/lib/store";
-import { Field, Sheet, emoji, haptic } from "./ui";
+import { Field, Ico, Sheet, emoji, haptic } from "./ui";
 import type { ModalState, Notify, Page } from "./types";
 
 type P = { d: KooperData; close: () => void; notify: Notify; go: (p: Page) => void; open: (m: NonNullable<ModalState>) => void };
@@ -135,8 +135,8 @@ function AlertsSheet({ d, close, open, go }: P) {
             <span className="item-ico">{emoji(x.category)}</span><div style={{ flex: 1 }}><strong>{x.name} is low</strong><small>{x.quantity} {x.unit} left · tap to draft an order</small></div><span className="tag red">Low</span>
           </button>
         ))}
-        {pending.length > 0 && <button className="alert" onClick={() => { close(); go("Orders"); }}><span className="item-ico">📝</span><div style={{ flex: 1 }}><strong>{pending.length} order{pending.length > 1 ? "s" : ""} to approve</strong><small>Nothing goes out without you</small></div><span className="tag warn">{pending.length}</span></button>}
-        {low.length + pending.length === 0 && <div className="empty"><span>🎉</span><strong>All clear</strong>Everything is stocked and approved.</div>}
+        {pending.length > 0 && <button className="alert" onClick={() => { close(); go("Orders"); }}><span className="item-ico"><Ico n="note" /></span><div style={{ flex: 1 }}><strong>{pending.length} order{pending.length > 1 ? "s" : ""} to approve</strong><small>Nothing goes out without you</small></div><span className="tag warn">{pending.length}</span></button>}
+        {low.length + pending.length === 0 && <div className="empty"><span><Ico n="party" /></span><strong>All clear</strong>Everything is stocked and approved.</div>}
       </div>
     </Sheet>
   );

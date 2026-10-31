@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Copy } from "lucide-react";
 import { isLow, money } from "@/lib/data";
-import { CountUp, Screen, Section } from "../ui";
+import { CountUp, Ico, Screen, Section } from "../ui";
 import type { Page, ViewProps } from "../types";
 
 export function Reports({ d, go, notify }: ViewProps) {
@@ -14,9 +14,9 @@ export function Reports({ d, go, notify }: ViewProps) {
   const max = Math.max(...cat.map((c) => c[1]), 1);
   const [text, setText] = useState("Hello, we’re reviewing our upcoming ingredient requirements. Could you please confirm current prices, stock availability and the earliest delivery slot for our usual items? Please hold off on processing any order until we confirm quantities. Thank you.");
   const acts: { e: string; t: string; s: string; p: Page }[] = [
-    { e: "📦", t: `${low.length} ingredient${low.length === 1 ? "" : "s"} at reorder level`, s: "Review suggested quantities.", p: "Stock" },
-    { e: "📝", t: `${pending} order${pending === 1 ? "" : "s"} awaiting approval`, s: "Check supplier, quantity and estimate.", p: "Orders" },
-    { e: "🗑️", t: `${d.waste.length} waste events logged`, s: "Keep logging to see what repeats.", p: "Waste" },
+    { e: "box", t: `${low.length} ingredient${low.length === 1 ? "" : "s"} at reorder level`, s: "Review suggested quantities.", p: "Stock" },
+    { e: "note", t: `${pending} order${pending === 1 ? "" : "s"} awaiting approval`, s: "Check supplier, quantity and estimate.", p: "Orders" },
+    { e: "bin", t: `${d.waste.length} waste events logged`, s: "Keep logging to see what repeats.", p: "Waste" },
   ];
   return (
     <Screen title="This week" sub="A plain look at your numbers." back={() => go("More")}>
@@ -32,7 +32,7 @@ export function Reports({ d, go, notify }: ViewProps) {
         ))}
       </div>
       <Section title="Next steps" />
-      <div className="menu">{acts.map((a) => <button key={a.t} onClick={() => go(a.p)}><span className="ico" style={{ background: "var(--canvas)", fontSize: 22 }}>{a.e}</span><div><strong style={{ fontSize: 15 }}>{a.t}</strong><small>{a.s}</small></div></button>)}</div>
+      <div className="menu">{acts.map((a) => <button key={a.t} onClick={() => go(a.p)}><span className="ico" style={{ background: "var(--canvas)", fontSize: 22 }}><Ico n={a.e} /></span><div><strong style={{ fontSize: 15 }}>{a.t}</strong><small>{a.s}</small></div></button>)}</div>
       <Section title="Supplier follow-up" aside={<button className="btn sm soft" onClick={() => { navigator.clipboard?.writeText(text); notify("Follow-up copied."); }}><Copy /> Copy</button>} />
       <textarea className="field" rows={5} value={text} onChange={(e) => setText(e.target.value)} style={{ lineHeight: 1.6, resize: "none" }} aria-label="Follow-up message" />
     </Screen>

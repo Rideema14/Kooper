@@ -1,9 +1,15 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, type PointerEvent as RPE, type ReactNode } from "react";
-import { CheckCircle2, ChevronLeft } from "lucide-react";
+import { Bean, Beef, CheckCircle2, ChevronLeft, ClipboardList, Compass, Fish, Inbox, Leaf, Milk, Package, PartyPopper, Recycle, Repeat, Search, Sprout, Trash2, Wheat, Droplets, Salad } from "lucide-react";
 
 export const haptic = (ms = 8) => { try { navigator.vibrate?.(ms); } catch {} };
-export const emoji = (c: string) => ({ Produce: "🥬", Dairy: "🧀", Pantry: "🫒", Meat: "🍗", Seafood: "🐟" } as Record<string, string>)[c] ?? "📦";
+const ICONS: Record<string, ReactNode> = {
+  Produce: <Salad />, Dairy: <Milk />, Pantry: <Droplets />, Meat: <Beef />, Seafood: <Fish />, Grain: <Wheat />, Other: <Package />,
+  box: <Package />, note: <ClipboardList />, bin: <Trash2 />, search: <Search />, done: <CheckCircle2 />, empty: <Inbox />, sprout: <Sprout />,
+  repeat: <Repeat />, compass: <Compass />, recycle: <Recycle />, party: <PartyPopper />, leaf: <Leaf />, bean: <Bean />,
+};
+export const emoji = (c: string): ReactNode => ICONS[c] ?? ICONS.Other;
+export const Ico = ({ n }: { n: string }) => <>{ICONS[n] ?? ICONS.Other}</>;
 
 /* ── Animated number ── */
 export function CountUp({ to, format = (n: number) => String(Math.round(n)), duration = 800 }: { to: number; format?: (n: number) => string; duration?: number }) {
@@ -39,7 +45,7 @@ export function Screen({ title, sub, back, action, children }: { title: ReactNod
 }
 
 export const Section = ({ title, aside }: { title: string; aside?: ReactNode }) => <div className="sect"><h2>{title}</h2>{aside}</div>;
-export const Empty = ({ icon = "🍃", title, text }: { icon?: string; title: string; text?: string }) => <div className="empty"><span>{icon}</span><strong>{title}</strong>{text}</div>;
+export const Empty = ({ icon = "leaf", title, text }: { icon?: string; title: string; text?: string }) => <div className="empty"><span><Ico n={icon} /></span><strong>{title}</strong>{text}</div>;
 
 /* ── Ring gauge ── */
 export function Ring({ value, size = 104, stroke = 11, color = "var(--lime)", track = "#ffffff26", children }: { value: number; size?: number; stroke?: number; color?: string; track?: string; children?: ReactNode }) {
@@ -47,12 +53,12 @@ export function Ring({ value, size = 104, stroke = 11, color = "var(--lime)", tr
   const [m, setM] = useState(false);
   useEffect(() => { const t = requestAnimationFrame(() => setM(true)); return () => cancelAnimationFrame(t); }, []);
   return (
-    <div className="ring" style={{ width: size, height: size }}>
+    <div className="gauge" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={m ? c * (1 - v) : c} style={{ transition: "stroke-dashoffset .9s cubic-bezier(.2,.9,.2,1), stroke .3s" }} />
       </svg>
-      <div className="ring-in">{children}</div>
+      <div className="gauge-in">{children}</div>
     </div>
   );
 }
