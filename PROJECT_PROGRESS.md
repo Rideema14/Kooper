@@ -46,3 +46,10 @@ _Updated 2026-11-01. Verified = I ran it in this sandbox. "Written, not run" = c
 2. `npx playwright install chromium && npm run test:e2e`; fix what fails.
 3. Supplier management screen + PO edit + payment status UI.
 4. Deploy to a staging environment; set up backups; add Sentry.
+
+## Performance pass (2026-11-01)
+Measured through a simulated 140 ms database round trip (local Postgres behind a delaying TCP proxy), production build:
+- `/api/bootstrap`: **5.2 s → ~0.47 s** (first call after start ~1.3 s while connections open). Cause: ~35 sequential round trips, a full dashboard computed for two numbers, per-row notification upserts, a 5-connection pool queueing queries.
+- Fixes: lightweight shell stats, bulk throttled background notification sync, single-query account lookup, joined relation loading (`relationJoins` preview), pool 5 → 10.
+- Intro screen no longer waits for the 3D scene; opens on data-ready, ~1 s total, skipped on repeat visits.
+- **Not measured:** real Neon/London latency, a real browser, the 3D scene's own load/GPU time, or the first-load cost of Next's dev server on your machine.

@@ -14,7 +14,7 @@ const OPEN: PurchaseStatus[] = ["PENDING_APPROVAL", "APPROVED", "SENT", "PARTIAL
 const include = { supplier: { select: { id: true, name: true, phone: true, email: true } }, items: { include: { ingredient: { select: { id: true, name: true, unit: true, category: true } } } } } as const;
 
 export const listPurchases = (ctx: Ctx, status?: PurchaseStatus[]) =>
-  db.purchaseOrder.findMany({ where: { restaurantId: ctx.restaurantId, ...(status ? { status: { in: status } } : {}) }, include, orderBy: { createdAt: "desc" }, take: 300 });
+  db.purchaseOrder.findMany({ relationLoadStrategy: "join", where: { restaurantId: ctx.restaurantId, ...(status ? { status: { in: status } } : {}) }, include, orderBy: { createdAt: "desc" }, take: 300 });
 
 export async function getPurchase(ctx: Ctx, id: string) {
   const po = await db.purchaseOrder.findFirst({ where: { id, restaurantId: ctx.restaurantId }, include });

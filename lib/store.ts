@@ -36,7 +36,8 @@ const mapPo = (p: any): Purchase => {
 };
 const mapWaste = (w: any): WasteEntry => ({ id: w.id, ingredientId: w.ingredientId, item: w.ingredient.name, quantity: Number(w.quantity), unit: w.ingredient.unit, reason: w.reason, date: String(w.occurredAt).slice(0, 10), value: Number(w.value), department: w.department });
 
-type Boot = { me: Me; ingredients: any[]; purchases: any[]; waste: any[]; recipes: any[]; suppliers: Supplier[]; dash: Dash; notifications: Notice[] };
+export type Shell = { spendByDay: { day: string; spend: number }[]; repeatedWaste: { name: string; count: number; value: number }[] };
+type Boot = { me: Me; ingredients: any[]; purchases: any[]; waste: any[]; recipes: any[]; suppliers: Supplier[]; dash: Shell; notifications: Notice[] };
 
 export const CAPS = {
   inventoryWrite: ["OWNER", "MANAGER", "INVENTORY_STAFF"], purchasing: ["OWNER", "MANAGER"], receiving: ["OWNER", "MANAGER", "INVENTORY_STAFF"],
@@ -53,7 +54,7 @@ export function useKooperData() {
   const [waste, setWaste] = useState<WasteEntry[]>([]);
   const [recipes, setRecipes] = useState<RecipeFull[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [dash, setDash] = useState<Dash | null>(null);
+  const [dash, setDash] = useState<Shell | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const alive = useRef(true);
 
@@ -84,6 +85,7 @@ export function useKooperData() {
     reverseWaste: (id: string) => run(() => api("DELETE", `/api/waste/${id}`)),
     saveRecipe: (id: string | null, b: unknown) => run(() => (id ? api<RecipeFull>("PUT", `/api/recipes/${id}`, b) : api<RecipeFull>("POST", "/api/recipes", b))),
     deleteRecipe: (id: string) => run(() => api("DELETE", `/api/recipes/${id}`)),
+    refreshNotices: async () => { try { setNotices(await api<Notice[]>("GET", "/api/notifications")); } catch { /* alerts still show live stock/orders */ } },
     markRead: () => run(() => api("POST", "/api/notifications", {})),
     logout: async () => { await api("POST", "/api/auth/logout"); location.href = "/login"; },
   };

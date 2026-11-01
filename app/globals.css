@@ -405,10 +405,10 @@ select.field { appearance: none; background-image: url("data:image/svg+xml;utf8,
 
 /* curtain */
 .curtain { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
-.curtain i { position: absolute; left: 0; right: 0; height: 50.5%; background: var(--night); transition: transform 1.3s var(--inout) .45s; }
+.curtain i { position: absolute; left: 0; right: 0; height: 50.5%; background: var(--night); transition: transform .7s var(--inout) .1s; }
 .curtain i:first-child { top: 0; } .curtain i:nth-child(2) { bottom: 0; }
-.curtain div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; font: 500 clamp(48px, 9vw, 92px)/1 var(--display); letter-spacing: -.02em; color: var(--ivory); transition: opacity .6s .2s, transform 1s .2s var(--out); }
-.curtain div::after { content: ""; display: block; height: 2px; margin: 18px auto 0; background: var(--clay); width: 0; animation: draw 1.3s var(--out) .15s forwards; }
+.curtain div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; font: 500 clamp(48px, 9vw, 92px)/1 var(--display); letter-spacing: -.02em; color: var(--ivory); transition: opacity .3s, transform .6s var(--out); }
+.curtain div::after { content: ""; display: block; height: 2px; margin: 18px auto 0; background: var(--clay); width: 0; animation: draw .6s var(--out) .05s forwards; }
 @keyframes draw { to { width: 100%; } }
 .curtain.ready i:first-child { transform: translateY(-101%); } .curtain.ready i:nth-child(2) { transform: translateY(101%); }
 .curtain.ready div { opacity: 0; transform: scale(1.06); }

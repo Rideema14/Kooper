@@ -19,7 +19,9 @@ for f in prisma/migrations/*/migration.sql; do psql "$DATABASE_URL" -v ON_ERROR_
 
 npx prisma generate
 npm run db:seed               # optional demo restaurant: demo@kooper.dev / kooper-demo-1234
-npm run dev                   # http://localhost:3000
+npm run dev                   # http://localhost:3000  (slow first loads: compiles each page on demand)
+# For speed, build once and run the optimised app instead:
+npm run serve                 # next build && next start — pages open in well under a second
 ```
 
 Verify the migrations match the schema before first deploy (zero drift expected):
@@ -85,3 +87,10 @@ See `DEPLOYMENT.md` for hosting and backups, and `PROJECT_PROGRESS.md` for an ho
 
 Each screen has its own object on a walnut table: Stock = tomato crate, Costing = Margherita on a board, Orders/Invoices = supplier invoice and pen, Assistant = phone, Waste = steel bowl of scraps, Reports = open ledger. The objects are decorative; they don't display your data. Depth of field (BokehPass) is on for desktop and turns itself off if frames slow down. Add `?nodof` to the URL to disable it, or `?nogl` to skip the scene entirely (the tests do this).
 
+
+## Speed notes
+
+- **Use `npm run serve`, not `npm run dev`, to judge speed.** The dev server compiles each page the first time you open it (minutes on some Windows setups); the production build has no such step.
+- **Keep the app and the database in the same region.** Each request makes several queries, so distance to the database is the biggest cost. A database in London with the app running in India adds roughly 0.15 s per round trip. Host the app in London for a London user.
+- The app shell loads in one request (`/api/bootstrap`) that runs its queries in parallel and returns only what the home screens need. The full report is fetched only when you open Reports. Notification syncing runs in the background.
+- The intro screen opens as soon as data has loaded and is skipped on repeat visits in the same browser tab.

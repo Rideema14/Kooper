@@ -32,12 +32,8 @@ export async function login(email: string, password: string) {
 }
 
 export async function me(userId: string, restaurantId: string) {
-  const [u, m, r] = await Promise.all([
-    db.user.findUniqueOrThrow({ where: { id: userId }, select: { id: true, name: true, email: true } }),
-    db.membership.findFirstOrThrow({ where: { userId, restaurantId } }),
-    db.restaurant.findUniqueOrThrow({ where: { id: restaurantId } }),
-  ]);
-  return { user: u, role: m.role, restaurant: { id: r.id, name: r.name, currency: r.currency } };
+  const m = await db.membership.findFirstOrThrow({ where: { userId, restaurantId }, include: { user: { select: { id: true, name: true, email: true } }, restaurant: true } });
+  return { user: m.user, role: m.role, restaurant: { id: m.restaurant.id, name: m.restaurant.name, currency: m.restaurant.currency } };
 }
 
 export async function forgotPassword(email: string) {

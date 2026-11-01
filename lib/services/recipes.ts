@@ -17,7 +17,7 @@ function withMetrics<T extends { sellingPrice: unknown; servings: number; lines:
 }
 
 export async function listRecipes(ctx: Ctx) {
-  const rs = await db.recipe.findMany({ where: { restaurantId: ctx.restaurantId, archivedAt: null }, include, orderBy: { name: "asc" } });
+  const rs = await db.recipe.findMany({ relationLoadStrategy: "join", where: { restaurantId: ctx.restaurantId, archivedAt: null }, include, orderBy: { name: "asc" } });
   return rs.map(withMetrics);
 }
 

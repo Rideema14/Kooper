@@ -12,29 +12,38 @@ export async function notify(c: Client, restaurantId: string, n: { kind: string;
   });
 }
 
-/** Derives alert notifications from live data (low stock, expiry, reviews, approvals). Safe to call repeatedly. */
-export async function syncNotifications(restaurantId: string) {
+const lastSync = new Map<string, number>();
+
+/**
+ * Derives alert notifications from live data (low stock, expiry, reviews, approvals).
+ * Five parallel reads, then ONE bulk insert (duplicates skipped via the dedupeKey unique index).
+ * Throttled per restaurant so page loads don't repeat the work.
+ */
+export async function syncNotifications(restaurantId: string, { force = false } = {}) {
+  const now = Date.now();
+  if (!force && now - (lastSync.get(restaurantId) ?? 0) < 60_000) return;
+  lastSync.set(restaurantId, now);
   const today = new Date().toISOString().slice(0, 10);
-  const soon = new Date(Date.now() + 3 * 864e5);
-  const [ings, sums, expiring, review, pending] = await Promise.all([
-    db.ingredient.findMany({ where: { restaurantId, archivedAt: null } }),
-    db.inventoryItem.groupBy({ by: ["ingredientId"], where: { restaurantId }, _sum: { quantity: true } }),
-    db.inventoryItem.findMany({ where: { restaurantId, quantity: { gt: 0 }, expiryDate: { lte: soon } }, include: { ingredient: true } }),
+  const soon = new Date(now + 3 * 864e5);
+  const [low, expiring, review, pending] = await Promise.all([
+    db.$queryRaw<{ id: string; name: string; unit: string; onHand: string; reorderLevel: string }[]>`
+      SELECT i."id", i."name", i."unit", COALESCE(SUM(b."quantity"), 0)::text AS "onHand", i."reorderLevel"::text AS "reorderLevel"
+      FROM "Ingredient" i LEFT JOIN "InventoryItem" b ON b."ingredientId" = i."id"
+      WHERE i."restaurantId" = ${restaurantId} AND i."archivedAt" IS NULL AND i."reorderLevel" > 0
+      GROUP BY i."id" HAVING COALESCE(SUM(b."quantity"), 0) <= i."reorderLevel"`,
+    db.inventoryItem.findMany({ where: { restaurantId, quantity: { gt: 0 }, expiryDate: { lte: soon } }, include: { ingredient: { select: { name: true, unit: true } } } }),
     db.invoice.count({ where: { restaurantId, status: "NEEDS_REVIEW" } }),
     db.purchaseOrder.count({ where: { restaurantId, status: "PENDING_APPROVAL" } }),
   ]);
-  const have = new Map(sums.map((s) => [s.ingredientId, D(s._sum.quantity ?? 0)]));
-  for (const i of ings) {
-    const q = have.get(i.id) ?? D(0);
-    if (q.lte(i.reorderLevel) && i.reorderLevel.gt(0))
-      await notify(db, restaurantId, { kind: "low_stock", title: `${i.name} is low`, body: `${q.toString()} ${i.unit} left (reorder at ${i.reorderLevel.toString()}).`, dedupeKey: `low:${i.id}:${today}` });
-  }
+  const rows: { restaurantId: string; kind: string; title: string; body?: string; dedupeKey: string }[] = [];
+  for (const i of low) rows.push({ restaurantId, kind: "low_stock", title: `${i.name} is low`, body: `${D(i.onHand).toString()} ${i.unit} left (reorder at ${D(i.reorderLevel).toString()}).`, dedupeKey: `low:${i.id}:${today}` });
   for (const b of expiring) {
-    const days = Math.ceil(((b.expiryDate as Date).getTime() - Date.now()) / 864e5);
-    await notify(db, restaurantId, { kind: "expiry", title: `${b.ingredient.name} ${days < 0 ? "has expired" : days === 0 ? "expires today" : `expires in ${days} day${days > 1 ? "s" : ""}`}`, body: `${b.quantity.toString()} ${b.ingredient.unit}${b.batchCode ? ` · batch ${b.batchCode}` : ""}`, dedupeKey: `exp:${b.id}:${today}` });
+    const days = Math.ceil(((b.expiryDate as Date).getTime() - now) / 864e5);
+    rows.push({ restaurantId, kind: "expiry", title: `${b.ingredient.name} ${days < 0 ? "has expired" : days === 0 ? "expires today" : `expires in ${days} day${days > 1 ? "s" : ""}`}`, body: `${b.quantity.toString()} ${b.ingredient.unit}${b.batchCode ? ` · batch ${b.batchCode}` : ""}`, dedupeKey: `exp:${b.id}:${today}` });
   }
-  if (review) await notify(db, restaurantId, { kind: "invoice_review", title: `${review} invoice${review > 1 ? "s" : ""} need review`, dedupeKey: `inv:${review}:${today}` });
-  if (pending) await notify(db, restaurantId, { kind: "po_approval", title: `${pending} order${pending > 1 ? "s" : ""} waiting for approval`, dedupeKey: `poa:${pending}:${today}` });
+  if (review) rows.push({ restaurantId, kind: "invoice_review", title: `${review} invoice${review > 1 ? "s" : ""} need review`, dedupeKey: `inv:${review}:${today}` });
+  if (pending) rows.push({ restaurantId, kind: "po_approval", title: `${pending} order${pending > 1 ? "s" : ""} waiting for approval`, dedupeKey: `poa:${pending}:${today}` });
+  if (rows.length) await db.notification.createMany({ data: rows, skipDuplicates: true });
 }
 
 export const listNotifications = (restaurantId: string) =>

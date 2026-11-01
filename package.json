@@ -13,7 +13,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "serve": "next build && next start"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.2.0",

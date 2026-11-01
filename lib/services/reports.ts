@@ -14,6 +14,16 @@ export function resolveRange(from?: Date, to?: Date) {
   return { from: start, to: end };
 }
 
+/** Just what the app shell needs (7-day spend + repeated waste) — 2 queries instead of the full report. */
+export async function shellStats(ctx: Ctx) {
+  const rid = ctx.restaurantId, from = new Date(Date.now() - 7 * 864e5);
+  const [days, repeat] = await Promise.all([
+    db.$queryRaw<{ d: Date; v: string }[]>`SELECT date_trunc('day', "createdAt") AS d, SUM("quantity" * COALESCE("unitCost",0))::text AS v FROM "StockMovement" WHERE "restaurantId" = ${rid} AND "type" = 'PURCHASE_RECEIVED' AND "createdAt" >= ${from} GROUP BY 1 ORDER BY 1`,
+    repeatedWaste(ctx),
+  ]);
+  return { spendByDay: days.map((x) => ({ day: x.d.toISOString().slice(0, 10), spend: n(x.v) })), repeatedWaste: repeat.map((r) => ({ ...r, value: n(r.value) })) };
+}
+
 export async function dashboard(ctx: Ctx, r0: { from?: Date; to?: Date } = {}) {
   const { from, to } = resolveRange(r0.from, r0.to);
   const rid = ctx.restaurantId;

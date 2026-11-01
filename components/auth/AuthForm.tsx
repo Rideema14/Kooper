@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 type Mode = "login" | "signup" | "forgot" | "reset" | "invite";
 const COPY: Record<Mode, { title: string; sub: string; cta: string }> = {
@@ -14,8 +14,6 @@ const COPY: Record<Mode, { title: string; sub: string; cta: string }> = {
 export default function AuthForm({ mode, token }: { mode: Mode; token?: string }) {
   const [f, set] = useState({ name: "", email: "", password: "", restaurantName: "" });
   const [busy, setBusy] = useState(false);
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
   const [err, setErr] = useState<string | null>(null);
   const [note, setNote] = useState<{ text: string; link?: string } | null>(null);
   const up = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => set({ ...f, [k]: e.target.value });
@@ -52,7 +50,7 @@ export default function AuthForm({ mode, token }: { mode: Mode; token?: string }
         {mode !== "forgot" && <label><span className="label">Password</span><input className="field" type="password" required minLength={mode === "login" ? 1 : 10} value={f.password} onChange={up("password")} autoComplete={mode === "login" ? "current-password" : "new-password"} /></label>}
         {err && <div className="auth-err" role="alert">{err}</div>}
         {note && <div className="auth-ok" role="status">{note.text}{note.link && <> <br /><a href={note.link}>Open reset link</a> <small>(shown only because email isn&apos;t configured, in development)</small></>}</div>}
-       <button className="btn lime block" disabled={busy || !ready}>{!ready ? "Loading…" : busy ? "One moment…" : c.cta}</button>
+        <button className="btn lime block" disabled={busy}>{busy ? "One moment…" : c.cta}</button>
         <div className="auth-links">
           {mode === "login" && <><Link href="/signup">Create an account</Link><Link href="/forgot">Forgot password?</Link></>}
           {mode !== "login" && <Link href="/login">Back to sign in</Link>}

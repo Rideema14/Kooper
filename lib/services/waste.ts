@@ -37,12 +37,15 @@ export async function reverseWaste(ctx: Ctx, id: string) {
 }
 
 export const listWaste = (ctx: Ctx, from?: Date, to?: Date) =>
-  db.wasteEntry.findMany({ where: { restaurantId: ctx.restaurantId, occurredAt: { gte: from, lte: to } }, include: { ingredient: { select: { name: true, unit: true, category: true } } }, orderBy: { occurredAt: "desc" }, take: 500 });
+  db.wasteEntry.findMany({ relationLoadStrategy: "join", where: { restaurantId: ctx.restaurantId, occurredAt: { gte: from, lte: to } }, include: { ingredient: { select: { name: true, unit: true, category: true } } }, orderBy: { occurredAt: "desc" }, take: 500 });
 
-/** Ingredients wasted 3+ times in the window — the "keeps coming back" signal. */
+/** Ingredients wasted 3+ times in the window — the "keeps coming back" signal. One query. */
 export async function repeatedWaste(ctx: Ctx, days = 14, min = 3) {
-  const rows = await db.wasteEntry.groupBy({ by: ["ingredientId"], where: { restaurantId: ctx.restaurantId, occurredAt: { gte: new Date(Date.now() - days * 864e5) } }, _count: true, _sum: { value: true } });
-  const hits = rows.filter((r) => r._count >= min);
-  const names = await db.ingredient.findMany({ where: { id: { in: hits.map((h) => h.ingredientId) }, restaurantId: ctx.restaurantId } });
-  return hits.map((h) => ({ ingredientId: h.ingredientId, name: names.find((n) => n.id === h.ingredientId)?.name ?? "", count: h._count, value: h._sum.value ?? D(0) }));
+  const since = new Date(Date.now() - days * 864e5);
+  const rows = await db.$queryRaw<{ ingredientId: string; name: string; count: number; value: string }[]>`
+    SELECT w."ingredientId", i."name", COUNT(*)::int AS count, SUM(w."value")::text AS value
+    FROM "WasteEntry" w JOIN "Ingredient" i ON i."id" = w."ingredientId"
+    WHERE w."restaurantId" = ${ctx.restaurantId} AND w."occurredAt" >= ${since}
+    GROUP BY w."ingredientId", i."name" HAVING COUNT(*) >= ${min} ORDER BY SUM(w."value") DESC`;
+  return rows.map((r) => ({ ingredientId: r.ingredientId, name: r.name, count: r.count, value: D(r.value) }));
 }

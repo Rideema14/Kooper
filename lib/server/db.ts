@@ -7,7 +7,7 @@ function create() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
   // pg Pool via driver adapter; with Supabase use the pooled (port 6543) URL at runtime.
-  const adapter = new PrismaPg({ connectionString: url, max: Number(process.env.DB_POOL_MAX ?? 5) });
+  const adapter = new PrismaPg({ connectionString: url, max: Number(process.env.DB_POOL_MAX ?? 10) });
   return new PrismaClient({ adapter });
 }
 

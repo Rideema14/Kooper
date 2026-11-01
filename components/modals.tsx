@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Copy, MessageCircle, Share2, PackagePlus, Trash2, ScanLine, ShoppingBasket, Download, LogOut } from "lucide-react";
 import { isLow, isoDaysAgo, money, suggestQty } from "@/lib/data";
 import { api, type KooperData } from "@/lib/store";
@@ -231,6 +231,7 @@ function QuickSheet({ close, open, go }: P) {
 }
 
 function AlertsSheet({ d, close, open, go }: P) {
+  useEffect(() => { d.act.refreshNotices(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const low = d.inventory.filter(isLow);
   const pending = d.purchases.filter((p) => p.status === "Needs approval");
   const unread = d.notices.filter((n) => !n.readAt && !["low_stock", "po_approval"].includes(n.kind));

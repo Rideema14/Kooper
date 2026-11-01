@@ -44,12 +44,16 @@ export default function App() {
   const [sceneReady, setSceneReady] = useState(false);
   const [noGl, setNoGl] = useState(false);
   const [curtain, setCurtain] = useState<"on" | "open" | "gone">("on");
+  // The intro opens as soon as the data has loaded — it never waits for the 3D scene (which keeps loading behind it).
+  // Repeat visits in the same tab skip it entirely. (sessionStorage holds only this cosmetic flag.)
   useEffect(() => {
-    if (!sceneReady && !noGl) return;
-    const a = setTimeout(() => setCurtain("open"), 900), b = setTimeout(() => setCurtain("gone"), 2600);
+    try { if (sessionStorage.getItem("kooper_intro") === "1") setCurtain("gone"); } catch { /* storage blocked: just play the intro */ }
+  }, []);
+  useEffect(() => {
+    if (!d.ready || curtain !== "on") return;
+    const a = setTimeout(() => setCurtain("open"), 250), b = setTimeout(() => { setCurtain("gone"); try { sessionStorage.setItem("kooper_intro", "1"); } catch { /* ignore */ } }, 1100);
     return () => { clearTimeout(a); clearTimeout(b); };
-  }, [sceneReady, noGl]);
-  useEffect(() => { const f = setTimeout(() => setSceneReady(true), 5000); return () => clearTimeout(f); }, []);
+  }, [d.ready, curtain]);
   const focus: Page = page;
   const stageEl = useRef<HTMLDivElement>(null);
   const scroll = useRef<ScrollState>({ y: 0, band: 520 });

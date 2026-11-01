@@ -11,14 +11,17 @@ import * as rc from "@/lib/services/recipes";
 import * as rp from "@/lib/services/reports";
 import * as nt from "@/lib/services/notifications";
 
-/** One round trip for the whole app shell. Everything is scoped to the session's restaurant. */
+/**
+ * One round trip for the whole app shell, all queries in parallel. Everything is scoped to the session's restaurant.
+ * Notification sync runs in the background so it never delays the response.
+ */
 export const GET = route(CAN.inventoryRead, async (c) => {
-  await nt.syncNotifications(c.restaurantId);
+  nt.syncNotifications(c.restaurantId).catch((e) => console.error("[notifications] sync failed:", e));
   const since = new Date(Date.now() - 60 * 864e5);
   const [me, ingredients, purchases, waste, recipes, suppliers, dash, notifications] = await Promise.all([
     acct.me(c.userId, c.restaurantId), cat.listIngredients(c), po.listPurchases(c, ["PENDING_APPROVAL", "APPROVED", "SENT", "PARTIALLY_RECEIVED"]),
     ws.listWaste(c, since), rc.listRecipes(c), db.supplier.findMany({ where: { restaurantId: c.restaurantId, archivedAt: null }, orderBy: { name: "asc" } }),
-    rp.dashboard(c, { from: new Date(Date.now() - 7 * 864e5) }), nt.listNotifications(c.restaurantId),
+    rp.shellStats(c), nt.listNotifications(c.restaurantId),
   ]);
   return plain({ me, ingredients, purchases, waste, recipes, suppliers, dash, notifications });
 });
