@@ -14,6 +14,7 @@ const COPY: Record<Mode, { title: string; sub: string; cta: string }> = {
 export default function AuthForm({ mode, token }: { mode: Mode; token?: string }) {
   const [f, set] = useState({ name: "", email: "", password: "", restaurantName: "" });
   const [busy, setBusy] = useState(false);
+  const [opening, setOpening] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [note, setNote] = useState<{ text: string; link?: string } | null>(null);
   const up = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => set({ ...f, [k]: e.target.value });
@@ -33,7 +34,7 @@ export default function AuthForm({ mode, token }: { mode: Mode; token?: string }
       if (!r.ok) throw new Error(j.error || "Something went wrong.");
       if (mode === "forgot") { setNote({ text: j.message, link: j.devLink ?? undefined }); }
       else if (mode === "reset") { setNote({ text: "Password updated. You can sign in now." }); }
-      else location.href = "/";
+      else { setOpening(true); window.location.replace("/"); }
     } catch (e2) { setErr(e2 instanceof Error ? e2.message : "Something went wrong."); }
     finally { setBusy(false); }
   }
@@ -56,6 +57,14 @@ export default function AuthForm({ mode, token }: { mode: Mode; token?: string }
           {mode !== "login" && <Link href="/login">Back to sign in</Link>}
         </div>
       </form>
+      {opening && (
+        <div className="auth-opening" role="status" aria-live="polite">
+          <div className="auth-opening-mark">k</div>
+          <div className="auth-opening-name">Kooper</div>
+          <p>Setting your kitchen in motion…</p>
+          <span className="auth-opening-spinner" />
+        </div>
+      )}
     </main>
   );
 }

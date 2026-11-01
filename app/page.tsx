@@ -51,7 +51,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (!d.ready || curtain !== "on") return;
-    const a = setTimeout(() => setCurtain("open"), 250), b = setTimeout(() => { setCurtain("gone"); try { sessionStorage.setItem("kooper_intro", "1"); } catch { /* ignore */ } }, 1100);
+    const a = setTimeout(() => setCurtain("open"), 45), b = setTimeout(() => { setCurtain("gone"); try { sessionStorage.setItem("kooper_intro", "1"); } catch { /* ignore */ } }, 470);
     return () => { clearTimeout(a); clearTimeout(b); };
   }, [d.ready, curtain]);
   const focus: Page = page;
