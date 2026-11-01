@@ -23,6 +23,11 @@ const headers = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    outputFileTracingIncludes: {
+      "/api/**/*": ["./node_modules/.prisma/client/**/*"],
+    },
+  },
   async headers() { return [{ source: "/:path*", headers }, { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] }]; },
 };
 export default nextConfig;
