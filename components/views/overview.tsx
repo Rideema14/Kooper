@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ArrowRight, Check, ChefHat, Leaf, ScanLine, Sparkles, Trash2 } from "lucide-react";
-import { isLow, isoDaysAgo, money, suggestQty, toKg, uid, weeklySpend, type InventoryItem, type Purchase } from "@/lib/data";
+import { isLow, isoDaysAgo, money, suggestQty, toKg, type InventoryItem } from "@/lib/data";
 import { CountUp, Section, emoji, haptic } from "../ui";
 import type { ViewProps } from "../types";
 
@@ -12,30 +12,32 @@ export const wasteWindow = (d: ViewProps["d"]) => {
 };
 
 export function Overview({ d, go, open, notify }: ViewProps) {
-  const [sel, setSel] = useState(weeklySpend.length - 1);
+  // Real spend from received deliveries over the last 7 days (zero-filled so the chart always shows a full week).
+  const weeklySpend = Array.from({ length: 7 }, (_, i) => { const dt = new Date(); dt.setDate(dt.getDate() - (6 - i)); const key = isoDaysAgo(6 - i); return { day: dt.toLocaleDateString("en-IN", { weekday: "short" }), spend: d.dash?.spendByDay.find((x) => x.day === key)?.spend ?? 0 }; });
+  const [sel, setSel] = useState(6);
   const low = d.inventory.filter(isLow);
-  const queued = new Set(d.purchases.filter((p) => p.status !== "Ordered").map((p) => p.item.toLowerCase()));
+  const queued = new Set(d.purchases.flatMap((p) => p.lines.map((l) => l.name.toLowerCase())));
   const pending = d.purchases.filter((p) => p.status === "Needs approval").length;
   const health = d.inventory.length ? (d.inventory.length - low.length) / d.inventory.length : 1;
   const { week, prior } = wasteWindow(d);
   const change = prior > 0 ? Math.round(((week - prior) / prior) * 100) : null;
   const hour = new Date().getHours();
   const greet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const peak = Math.max(...weeklySpend.map((x) => x.spend));
+  const peak = Math.max(...weeklySpend.map((x) => x.spend), 1);
   const total = weeklySpend.reduce((s, x) => s + x.spend, 0);
 
   const quickOrder = (x: InventoryItem) => {
-    const q = suggestQty(x);
-    const p: Purchase = { id: uid("PO"), item: x.name, quantity: q, unit: x.unit, supplier: x.supplier, estimated: q * x.unitPrice, status: "Needs approval" };
-    d.setPurchases((v) => [p, ...v]); haptic(12);
-    notify(`${x.name} added to Orders.`, () => d.setPurchases((v) => v.filter((y) => y.id !== p.id)));
+    haptic(12);
+    d.act.createPurchase({ supplierId: x.supplierId, items: [{ ingredientId: x.id, quantity: suggestQty(x) }] })
+      .then(() => notify(`${x.name} added to Orders for approval.`))
+      .catch((e) => notify(e instanceof Error ? e.message : "Couldn’t create the order."));
   };
 
   return (
     <div className="view">
       <div className="band-home">
         <div className="kick">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</div>
-        <h1>{greet}, Olivia.</h1>
+        <h1>{greet}, {d.me?.user.name.split(" ")[0] ?? "chef"}.</h1>
         <p className="lede">{low.length ? `${low.length} ${low.length === 1 ? "ingredient needs" : "ingredients need"} restocking` : "The pantry looks well stocked"}{pending ? `, and ${pending} order${pending > 1 ? "s are" : " is"} waiting for your OK.` : ". No orders are waiting on you."}</p>
         <div className="acts">
           <button className="btn lime" onClick={() => go("Orders")}>Review orders</button>
@@ -59,7 +61,7 @@ export function Overview({ d, go, open, notify }: ViewProps) {
               <div className="level" style={{ background: "var(--tomato-soft)" }}><div className="level-fill low" style={{ width: `${Math.max(6, (x.quantity / x.reorderAt) * 50)}%` }} /></div>
               {queued.has(x.name.toLowerCase())
                 ? <button className="btn sm done" onClick={() => go("Orders")}><Check /> In orders</button>
-                : <button className="btn sm lime" onClick={() => quickOrder(x)}>Add to orders</button>}
+                : d.can("purchasing") ? <button className="btn sm lime" onClick={() => quickOrder(x)}>Add to orders</button> : <span className="tag red">Low</span>}
             </div>
           ))}
         </div>
@@ -69,7 +71,7 @@ export function Overview({ d, go, open, notify }: ViewProps) {
       <div className="card">
         <div className="spend-top">
           <div><small className="muted" style={{ fontWeight: 600 }}>{weeklySpend[sel].day} · tap a bar</small><div className="fig num"><CountUp to={weeklySpend[sel].spend} format={(n) => money(n)} duration={500} /></div></div>
-          <span className="tag">{money(total)} this week</span>
+          <span className="tag">{total ? `${money(total)} received this week` : "No deliveries this week"}</span>
         </div>
         <div className="spark">
           {weeklySpend.map((x, i) => (

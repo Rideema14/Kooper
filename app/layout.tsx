@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/newsreader";
+import "@fontsource-variable/newsreader/wght-italic.css";
 import "@fontsource-variable/onest";
-// @ts-expect-error Next.js handles global CSS imports at build time.
 import "./globals.css";
 
 export const metadata: Metadata = {

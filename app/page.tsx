@@ -22,7 +22,7 @@ const Scene = dynamic(() => import("@/components/scene"), { ssr: false });
 
 const links: { p: Page; t: string }[] = [
   { p: "Home", t: "Home" }, { p: "Stock", t: "Stock" }, { p: "Orders", t: "Orders" }, { p: "Invoices", t: "Invoices" },
-  { p: "Costing", t: "Plate cost" }, { p: "Waste", t: "Waste" }, { p: "Assistant", t: "Ask Kooper" }, { p: "Reports", t: "This week" },
+  { p: "Costing", t: "Plate cost" }, { p: "Waste", t: "Waste" }, { p: "Assistant", t: "Ask Kooper" }, { p: "Reports", t: "Reports" },
 ];
 const bandPx = (p: Page, h: number) => (p === "Home" ? Math.max(430, Math.round(h * 0.84)) : Math.min(330, Math.max(230, Math.round(h * 0.34))));
 
@@ -120,6 +120,7 @@ export default function App() {
 
   const low = d.inventory.filter(isLow).length;
   const pending = d.purchases.filter((p) => p.status === "Needs approval").length;
+  const unseen = d.notices.filter((n) => !n.readAt && !["low_stock", "po_approval"].includes(n.kind)).length;
   const props: ViewProps = { d, go, notify, open };
   const chatting = page === "Assistant";
   const tp = { page, go };
@@ -131,18 +132,20 @@ export default function App() {
       <div className="grain" aria-hidden="true" />
 
       <header className="topbar">
-        <button className="place" onClick={() => go("Home")} aria-label="Home"><i>k</i><span>Olive &amp; Oak</span></button>
+        <button className="place" onClick={() => go("Home")} aria-label="Home"><i>k</i><span>{d.me?.restaurant.name ?? "Kooper"}</span></button>
         <nav className="navlinks" aria-label="Sections">
           {links.map((l) => <button key={l.p} className={page === l.p ? "on" : ""} onClick={() => go(l.p)} aria-current={page === l.p ? "page" : undefined}>{l.t}{l.p === "Stock" && low > 0 && <b>{low}</b>}{l.p === "Orders" && pending > 0 && <b>{pending}</b>}</button>)}
         </nav>
         <div className="tools">
           <button className="btn lime sm quickadd" onClick={() => open({ type: "quick" })}><Plus /> Quick add</button>
-          <button className={`round-btn ${low + pending > 0 ? "dot" : ""}`} aria-label="Alerts" onClick={() => open({ type: "alerts" })}><Bell /></button>
+          <button className={`round-btn ${low + pending + unseen > 0 ? "dot" : ""}`} aria-label="Alerts" onClick={() => open({ type: "alerts" })}><Bell /></button>
         </div>
       </header>
 
       <main className={`screen ${chatting ? "chat-screen" : ""} ${leaving ? "leaving" : ""}`} ref={screen} onScroll={onScroll} style={{ ["--band" as string]: `${band}px` }}>
-        {!d.ready ? <div className="boot"><i /></div> : (
+        {!d.ready ? <div className="boot"><i /></div> : d.error ? (
+          <div className="page"><div className="view"><div className="card" style={{ margin: "120px auto", maxWidth: 460, textAlign: "center" }}><h2>We couldn’t load your kitchen</h2><p className="muted" style={{ margin: "8px 0 16px" }}>{d.error}</p><button className="btn lime" onClick={() => location.reload()}>Try again</button></div></div></div>
+        ) : (
           <div key={page} className={`page ${curtain === "on" ? "hold" : ""} ${reveal ? "reveal" : ""}`} style={reveal ? { ["--ox" as string]: `${reveal.x}px`, ["--oy" as string]: `${reveal.y}px` } : undefined}>
             {page === "Home" && <Overview {...props} />}
             {page === "Stock" && <Inventory {...props} />}

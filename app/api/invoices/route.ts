@@ -1,20 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
-export async function POST(req: NextRequest) {
-  const data = await req.formData();
-  const file = data.get("file");
-  if (!(file instanceof File)) return NextResponse.json({ error: "Please attach a file." }, { status: 400 });
-  if (file.size > 10 * 1024 * 1024) return NextResponse.json({ error: "That file is over the 10 MB demo limit." }, { status: 413 });
-  const name = file.name.toLowerCase();
-  const allowed = [".pdf",".png",".jpg",".jpeg",".csv",".xlsx"];
-  if (!allowed.some(ext => name.endsWith(ext))) return NextResponse.json({ error: "Supported demo formats: PDF, PNG, JPG, CSV, XLSX." }, { status: 415 });
-  return NextResponse.json({
-    filename: file.name,
-    status: "preview",
-    extracted: [
-      { ingredient: "Tomatoes", quantity: 10, unit: "kg", unitPrice: 34, total: 340 },
-      { ingredient: "Olive oil", quantity: 2, unit: "L", unitPrice: 620, total: 1240 },
-      { ingredient: "Mozzarella", quantity: 3, unit: "kg", unitPrice: 390, total: 1170 }
-    ],
-    warning: "Demo extraction only. Verify every value against the original document before saving."
-  });
-}
+import { NextResponse } from "next/server";
+import { route, plain } from "@/lib/server/route";
+import { CAN } from "@/lib/server/auth";
+import { badRequest, AppError } from "@/lib/server/errors";
+import { rateLimit } from "@/lib/server/ratelimit";
+import { MAX_BYTES } from "@/lib/services/extract";
+import * as inv from "@/lib/services/invoices";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+export const GET = route(CAN.invoices, async (c) => plain(await inv.listInvoices(c)));
+export const POST = route(CAN.invoices, async (c, req) => {
+  rateLimit(`upload:${c.userId}`, 10, 60_000); // protects the Gemini free tier
+  const len = Number(req.headers.get("content-length") ?? 0);
+  if (len > MAX_BYTES + 200_000) throw new AppError(413, "That file is over 10 MB.", "too_large");
+  const fd = await req.formData().catch(() => null);
+  const f = fd?.get("file");
+  if (!(f instanceof File)) throw badRequest("Please attach a file.");
+  if (f.size > MAX_BYTES) throw new AppError(413, "That file is over 10 MB.", "too_large");
+  const out = await inv.uploadInvoice(c, { name: f.name.slice(0, 200), buffer: Buffer.from(await f.arrayBuffer()) });
+  return NextResponse.json(plain(out), { status: 201 });
+}, { limit: 60 });

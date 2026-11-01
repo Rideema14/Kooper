@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-export async function POST(req: NextRequest) {
- const body = await req.json();
- if (!body?.item || Number(body.quantity) <= 0) return NextResponse.json({error:"Enter an item and a positive quantity."},{status:400});
- return NextResponse.json({ok:true,entry:{...body,id:`W-${Date.now()}`}}, {status:201});
-}
+import { route, json, plain } from "@/lib/server/route";
+import { CAN } from "@/lib/server/auth";
+import * as S from "@/lib/schemas";
+export const dynamic = "force-dynamic";
+import * as ws from "@/lib/services/waste";
+import { NextResponse } from "next/server";
+export const GET = route(CAN.waste, async (c, req) => { const u = new URL(req.url).searchParams; return plain(await ws.listWaste(c, u.get("from") ? new Date(u.get("from") as string) : undefined, u.get("to") ? new Date(u.get("to") as string) : undefined)); });
+export const POST = route(CAN.waste, async (c, req) => NextResponse.json(plain(await ws.logWaste(c, await json(req, S.wasteSchema))), { status: 201 }));

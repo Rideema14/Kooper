@@ -9,7 +9,8 @@ export type ModalState =
   | { type: "settings" }
   | { type: "quick" }
   | { type: "alerts" }
-  | { type: "message" };
+  | { type: "message" }
+  | { type: "receive"; id: string };
 export type Notify = (text: string, undo?: () => void) => void;
 export type ViewProps = { d: KooperData; go: (p: Page) => void; notify: Notify; open: (m: NonNullable<ModalState>) => void };
 export type ChatMsg = { role: "bot" | "user"; text: string };

@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { isLow, money, suggestQty, type InventoryItem } from "@/lib/data";
-import { Empty, Level, Screen, SwipeRow, emoji, haptic, insertAt } from "../ui";
+import { Empty, Level, Screen, SwipeRow, emoji, haptic } from "../ui";
 import type { ViewProps } from "../types";
 
 export function Inventory({ d, open, notify }: ViewProps) {
@@ -16,17 +16,16 @@ export function Inventory({ d, open, notify }: ViewProps) {
     const hit = `${x.name} ${x.category} ${x.supplier}`.toLowerCase().includes(q.toLowerCase());
     return hit && (filter === "All" ? true : filter === "Low" ? isLow(x) : x.category === filter);
   });
-  const patch = (id: string, f: (x: InventoryItem) => Partial<InventoryItem>) => d.setInventory((v) => v.map((x) => (x.id === id ? { ...x, ...f(x), updated: "Just now" } : x)));
-  const adjust = (id: string, delta: number) => { haptic(5); patch(id, (x) => ({ quantity: Math.max(0, +(x.quantity + delta).toFixed(2)) })); };
-  const order = (x: InventoryItem) => open({ type: "purchase", preset: { item: x.name, quantity: String(suggestQty(x)), unit: x.unit, supplier: x.supplier, estimated: String(suggestQty(x) * x.unitPrice) } });
-  const remove = (x: InventoryItem) => {
-    const i = d.inventory.findIndex((y) => y.id === x.id);
-    d.setInventory((v) => v.filter((y) => y.id !== x.id));
-    notify(`${x.name} removed.`, () => d.setInventory((v) => insertAt(v, i, x)));
-  };
+  const fail = (e: unknown) => notify(e instanceof Error ? e.message : "Something went wrong.");
+  const canEdit = d.can("inventoryWrite");
+  const adjust = (x: InventoryItem, delta: number) => { haptic(5); d.act.adjustTo(x.id, Math.max(0, +(x.quantity + delta).toFixed(3))).catch(fail); };
+  const setReorder = (x: InventoryItem, v: number) => d.act.patchIngredient(x.id, { reorderLevel: Math.max(0, v), minStock: Math.max(0, v) }).catch(fail);
+  const order = (x: InventoryItem) => open({ type: "purchase", preset: { item: x.name, quantity: String(suggestQty(x)), unit: x.unit, supplier: x.supplier, estimated: String(+(suggestQty(x) * x.unitPrice).toFixed(2)) } });
+  const remove = (x: InventoryItem) => { d.act.archiveIngredient(x.id).then(() => notify(`${x.name} archived. Its history is kept.`)).catch(fail); };
+  const days = (iso: string | null) => (iso ? Math.ceil((+new Date(iso) - Date.now()) / 864e5) : null);
 
   return (
-    <Screen title="Stock" sub="Tap a card for details. Swipe it left for shortcuts." action={<button className="round-btn" style={{ background: "var(--lime)" }} aria-label="Add ingredient" onClick={() => open({ type: "stock" })}><Plus /></button>}>
+    <Screen title="Stock" sub="Tap a card for details. Swipe it left for shortcuts." action={canEdit ? <button className="round-btn" style={{ background: "var(--lime)" }} aria-label="Add ingredient" onClick={() => open({ type: "stock" })}><Plus /></button> : undefined}>
       <div className="trio">
         <div><b>{d.inventory.length}</b><span>Items</span></div>
         <div><b style={{ color: low.length ? "var(--tomato)" : undefined }}>{low.length}</b><span>Running low</span></div>
@@ -38,7 +37,7 @@ export function Inventory({ d, open, notify }: ViewProps) {
       <div className="stack">
         {rows.map((x, i) => (
           <div key={x.id} style={{ ["--i" as string]: i }} className={isLow(x) ? "is-low" : ""}>
-            <SwipeRow actions={[{ label: "Order", icon: <ShoppingCart />, tone: "lime", onClick: () => order(x) }, { label: "Delete", icon: <Trash2 />, tone: "red", onClick: () => remove(x) }]}>
+            <SwipeRow actions={[...(d.can("purchasing") ? [{ label: "Order", icon: <ShoppingCart />, tone: "lime" as const, onClick: () => order(x) }] : []), ...(canEdit ? [{ label: "Archive", icon: <Trash2 />, tone: "red" as const, onClick: () => remove(x) }] : [])]}>
               <div className="item" onClick={() => setOpenId(openId === x.id ? null : x.id)}>
                 <span className="item-ico">{emoji(x.category)}</span>
                 <div className="item-main">
@@ -47,17 +46,18 @@ export function Inventory({ d, open, notify }: ViewProps) {
                   <Level qty={x.quantity} reorder={x.reorderAt} />
                 </div>
                 <div className="qty" onClick={(e) => e.stopPropagation()}>
-                  <button aria-label={`Decrease ${x.name}`} onClick={() => adjust(x.id, -1)}><Minus /></button>
+                  <button aria-label={`Decrease ${x.name}`} disabled={!canEdit} onClick={() => adjust(x, -1)}><Minus /></button>
                   <span className="num">{x.quantity}<small>{x.unit}</small></span>
-                  <button aria-label={`Increase ${x.name}`} onClick={() => adjust(x.id, 1)}><Plus /></button>
+                  <button aria-label={`Increase ${x.name}`} disabled={!canEdit} onClick={() => adjust(x, 1)}><Plus /></button>
                 </div>
               </div>
               {openId === x.id && (
                 <div className="item-more">
                   <div>Price<b className="num">{money(x.unitPrice)}/{x.unit}</b></div>
                   <div>Updated<b>{x.updated}</b></div>
+                  {x.expiry && <div>Next expiry<b className="num" style={{ color: (days(x.expiry) ?? 9) <= 3 ? "var(--bad)" : undefined }}>{new Date(x.expiry).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</b></div>}
                   <div className="full"><span>Reorder at<b className="num">{x.reorderAt} {x.unit}</b></span>
-                    <span className="qty"><button aria-label="Lower reorder level" onClick={() => patch(x.id, (y) => ({ reorderAt: Math.max(0, y.reorderAt - 1) }))}><Minus /></button><button aria-label="Raise reorder level" onClick={() => patch(x.id, (y) => ({ reorderAt: y.reorderAt + 1 }))}><Plus /></button></span>
+                    <span className="qty"><button aria-label="Lower reorder level" disabled={!canEdit} onClick={() => setReorder(x, x.reorderAt - 1)}><Minus /></button><button aria-label="Raise reorder level" disabled={!canEdit} onClick={() => setReorder(x, x.reorderAt + 1)}><Plus /></button></span>
                   </div>
                 </div>
               )}

@@ -1,12 +1,19 @@
 {
   "name": "kooper-restaurant-ops",
-  "version": "1.1.0",
+  "version": "1.2.0-wip",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "tsx --env-file=.env prisma/seed.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.2.0",
@@ -15,20 +22,36 @@
     "@fontsource-variable/hanken-grotesk": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
     "@fontsource-variable/onest": "^5.3.1",
+    "@prisma/adapter-pg": "^6.19.3",
+    "@prisma/client": "^6.19.3",
     "@types/three": "^0.170.0",
+    "bcryptjs": "^3.0.3",
+    "exceljs": "^4.4.0",
+    "jose": "^6.2.14",
     "lucide-react": "^0.468.0",
     "next": "14.2.21",
+    "pdfkit": "^0.20.2",
+    "pg": "^8.23.1",
+    "prisma": "^6.19.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "three": "^0.170.0"
+    "three": "^0.170.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.2",
+    "@types/pdfkit": "^0.17.7",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "tsx": "^4.23.15",
+    "typescript": "^5.7.2",
+    "vitest": "^5.0.5"
   }
 }
