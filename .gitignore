@@ -1,0 +1,17 @@
+node_modules
+.next
+.env*.local
+.DS_Store
+.env
+.env.local
+*.log
+test-results/
+playwright-report/
+
+.env
+.env.*
+!.env.example
+
+.env
+.env.*
+!.env.example
